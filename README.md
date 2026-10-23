@@ -8,7 +8,7 @@ It goes much deeper than the HOOV mode in [Rollers](https://github.com/TwistedGe
 
 ## Download & install
 
-Go to [**Releases**](https://github.com/TwistedGenetics/Hoover/releases/latest) and download `Hoover.mk2unit`.
+Go to [**Releases**](https://github.com/TwistedGenetics/TwistedGenetics-Hoover-/releases/latest) and download `Hoover.mk2unit`.
 
 Needs microKORG 2 firmware **2.0.0 or later** (the version that added logue SDK support).
 
