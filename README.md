@@ -31,7 +31,7 @@ Hoover then appears at the end of the oscillator list.
 | 2 | **PWM Rate** | 0–100 % | PWM LFO, 0.1–8 Hz |
 | 2 | **Chorus** | 0–100 % | Pitch smear across the stack (up to ±14 cents, 0.55 Hz) |
 | 2 | **Sub** | 0–100 % | Sine sub one octave down (follows the dive) |
-| 3 | **Drive** | 0–100 % | Soft-clip saturation with level make-up |
+| 3 | **Drive** | 0–100 % | 0 = clean. Pushes the stack into a soft clipper by up to +30 dB, from warm grit to near-square fuzz; gets slightly louder as it goes |
 | 3 | **Drift** | 0–100 % | Slow random pitch walk per stack member |
 | 3 | **Semi / Fine** | ±24 st / ±50 ct | Transpose |
 
@@ -50,7 +50,7 @@ Hoover then appears at the end of the oscillator list.
 
 - **Mentasm hoover:** MENTASM, Detune 45, Dive +12, DiveTime 35, PWM 60, Chorus 50. Add portamento and a slow filter opening on the mk2.
 - **Rolling Reese:** REESE, Dive 0, Detune 25–40, Chorus 0–20, Sub 50, Drift 30. Keep the mk2 filter low.
-- **Rave stab:** RAVE, Dive −7, DiveTime 15, Drive 60, short amp EG.
+- **Rave stab:** RAVE, Dive −7, DiveTime 15, Drive 60–80, short amp EG.
 - **Mod-matrix wobble:** HOOVER, LFO → PWM at about 50 %, slow LFO → Detune at about 20 %.
 
 ## Test checklist (by ear on the hardware)

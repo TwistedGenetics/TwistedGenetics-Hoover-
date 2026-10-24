@@ -38,7 +38,7 @@ struct Params {
   float pwmRate  = 0.3f;   // 0..1  (0.1 .. 8 Hz)
   float chorus   = 0.5f;   // 0..1
   float sub      = 0.25f;  // 0..1
-  float drive    = 0.2f;   // 0..1
+  float drive    = 0.1f;   // 0..1
   float drift    = 0.3f;   // 0..1
   float transpose = 0.f;   // semitones (semi + fine)
 };
@@ -139,6 +139,9 @@ class Engine {
       dive_[v] = 0.f;
       pwmLfo_[v] = 0.13f * v;        // decorrelate voices
       chorusLfo_[v] = 0.29f * v;
+      driveG_[v] = 1.f;
+      driveMk_[v] = 1.f;
+      driveWet_[v] = 0.f;
       fresh_[v] = true;
     }
     rng_ = 0x9E3779B9u;
@@ -175,6 +178,9 @@ class Engine {
   float dive_[kMaxVoices];      // dive envelope, 1 -> 0
   float pwmLfo_[kMaxVoices];
   float chorusLfo_[kMaxVoices];
+  float driveG_[kMaxVoices];    // drive gain / make-up / wet, ramped per block
+  float driveMk_[kMaxVoices];
+  float driveWet_[kMaxVoices];
   bool  fresh_[kMaxVoices];
   uint32_t rng_;
 
@@ -234,23 +240,34 @@ class Engine {
     }
     const float subDtEnd = noteToDt(note + p.transpose + diveSemis - 12.f);
 
+    // ---- gains ----
+    static const float kStackGain[kMaxMembers + 1] = {0.f, 1.f, 0.7071f, 0.5774f, 0.5f};
+    const float stackGain = kStackGain[md.count];
+    const float subGain = sub * 0.9f;
+    // Drive: 0 = clean bypass. Above 0, the stack (scaled into the clipper's
+    // near-linear range) is pushed by +0..+30 dB on an even dB taper, then
+    // brought back down so heavy settings get only slightly louder, not much louder.
+    const float driveDb = drive * 30.f;
+    const float gEnd = std::exp2(driveDb * (1.f / 6.0206f));     // 1 .. ~31.6
+    // make-up from the clipper's own gain at a typical stack level (kTypRms into the clipper),
+    // so loudness rises gently (~+3 dB at 100 %) instead of jumping or collapsing
+    constexpr float kTypRms = 0.23f;
+    const float mkEnd = kTypRms * (1.f + drive * 0.4f) / softclip(gEnd * kTypRms);
+    const float wetEnd = clampf(drive * 12.f, 0.f, 1.f);         // fade the clipper in over the first ~8%
+    const float outTrim = 0.32f;
+    const float invN = 1.f / frames;
+
     if (fresh_[v]) {  // first block for this voice: no ramp from zero
       for (int k = 0; k < md.count; k++) {
         dt_[v][k] = dtEnd[k];
         twinPh_[v][k] = twinEnd[k];
       }
       subDt_[v] = subDtEnd;
+      driveG_[v] = gEnd;
+      driveMk_[v] = mkEnd;
+      driveWet_[v] = wetEnd;
       fresh_[v] = false;
     }
-
-    // ---- gains ----
-    static const float kStackGain[kMaxMembers + 1] = {0.f, 1.f, 0.7071f, 0.5774f, 0.5f};
-    const float stackGain = kStackGain[md.count];
-    const float subGain = sub * 0.9f;
-    const float g = 1.f + drive * drive * 9.f;            // 1 .. 10
-    const float makeup = 1.f / softclip(g * 0.9f);        // keep level roughly steady
-    const float outTrim = 0.32f;
-    const float invN = 1.f / frames;
 
     // ---- per-member render, accumulated into out ----
     for (int i = 0; i < frames; i++) out[i] = 0.f;
@@ -291,13 +308,25 @@ class Engine {
     float sph = subPh_[v];
     float sdt = subDt_[v];
     const float sdtInc = (subDtEnd - sdt) * invN;
+    // ramp drive settings across the block so knob moves don't zipper
+    float g = driveG_[v], mk = driveMk_[v], wet = driveWet_[v];
+    const float gInc = (gEnd - g) * invN, mkInc = (mkEnd - mk) * invN, wetInc = (wetEnd - wet) * invN;
+    const bool clean = wet <= 0.f && wetEnd <= 0.f;
+    constexpr float kHead = 1.f / 3.f;  // stack + sub peaks ~3 -> ~1 into the clipper
     for (int i = 0; i < frames; i++) {
-      float x = out[i] * stackGain + subGain * sinUnit(sph);
+      const float x = out[i] * stackGain + subGain * sinUnit(sph);
       sph += sdt;
       if (sph >= 1.f) sph -= 1.f;
       sdt += sdtInc;
-      out[i] = softclip(x * g) * makeup * outTrim;
+      float y = x;
+      if (!clean) {
+        const float shaped = softclip(x * kHead * g) * 3.f * mk;
+        y = x + (shaped - x) * wet;
+        g += gInc; mk += mkInc; wet += wetInc;
+      }
+      out[i] = y * outTrim;
     }
+    driveG_[v] = gEnd; driveMk_[v] = mkEnd; driveWet_[v] = wetEnd;
     subPh_[v] = sph;
     subDt_[v] = subDtEnd;
   }

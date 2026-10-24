@@ -140,6 +140,25 @@ int main(int argc, char **argv) {
     }
   }
 
+  // 4c) Drive: 0 is clean (high crest), 100 % is heavily clipped (crest near 1), monotonic in between
+  {
+    double prev = 1e9; bool mono = true, ok = true;
+    std::printf("drive crest:");
+    for (float d : {0.f, 0.25f, 0.5f, 0.75f, 1.f}) {
+      Engine e; e.params.mode = kModeHoover; e.params.dive = 0.f; e.params.drive = d; e.trigger(0, true);
+      float buf[kMaxBlock]; double sq = 0, pk = 0; const int N = 48000;
+      for (int i = 0; i < N; i += kMaxBlock) { e.render(0, 45.f, buf, kMaxBlock); for (float v : buf) { sq += v * v; pk = std::max(pk, (double)std::fabs(v)); } }
+      const double crest = pk / std::sqrt(sq / N);
+      std::printf(" %.0f%%=%.2f", d * 100, crest);
+      if (crest > prev + 0.05) mono = false;
+      if (d == 0.f && crest < 2.0) ok = false;
+      if (d == 1.f && crest > 1.2) ok = false;
+      prev = crest;
+    }
+    std::printf("  %s\n", (mono && ok) ? "ok" : "FAIL");
+    if (!(mono && ok)) failures++;
+  }
+
   // 4) Throughput: 8 voices, heaviest mode (4 members with twins)
   {
     Engine e;

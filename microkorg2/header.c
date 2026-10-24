@@ -24,7 +24,7 @@ const __unit_header unit_header_t unit_header = {
     .api = UNIT_API_VERSION,
     .dev_id = 0x5477476EU,  // 'TwGn' (TwistedGenetics)
     .unit_id = HOOVER_UNIT_ID,
-    .version = 0x00010000U,  // 1.0.0
+    .version = 0x00010001U,  // 1.0.1
     .name = HOOVER_UNIT_NAME,
     .num_presets = 0,
     .num_params = 12,
@@ -44,7 +44,7 @@ const __unit_header unit_header_t unit_header = {
         {0,   100,  0,  25, k_unit_param_type_percent, 0, 0, 0, {"Sub"}},
 
         // Page 3
-        {0,   100,  0,  20, k_unit_param_type_percent, 0, 0, 0, {"Drive"}},
+        {0,   100,  0,  10, k_unit_param_type_percent, 0, 0, 0, {"Drive"}},
         {0,   100,  0,  30, k_unit_param_type_percent, 0, 0, 0, {"Drift"}},
         {-24,  24,  0,   0, k_unit_param_type_none,    0, 0, 0, {"Semi"}},
         {-50,  50,  0,   0, k_unit_param_type_none,    0, 0, 0, {"Fine"}},
